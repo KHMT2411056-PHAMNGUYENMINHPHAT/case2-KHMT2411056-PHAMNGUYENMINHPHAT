@@ -3,9 +3,8 @@ import 'package:http/http.dart' as http;
 import '../models/task.dart';
 
 class TaskApiService {
-  static const String baseUrl = 'http://10.0.2.2:3000/api/tasks';
+  static const String baseUrl = 'http://localhost:3000/api/tasks';
 
-  // GET
   static Future<List<Task>> fetchTasks() async {
     final response = await http.get(Uri.parse(baseUrl));
     if (response.statusCode == 200) {
@@ -16,7 +15,6 @@ class TaskApiService {
     }
   }
 
-  // POST
   static Future<bool> createTask(Map<String, dynamic> taskData) async {
     final response = await http.post(
       Uri.parse(baseUrl),
@@ -26,7 +24,6 @@ class TaskApiService {
     return response.statusCode == 201;
   }
 
-  // PUT
   static Future<bool> updateTask(String id, Map<String, dynamic> taskData) async {
     final response = await http.put(
       Uri.parse('$baseUrl/$id'),
@@ -36,7 +33,6 @@ class TaskApiService {
     return response.statusCode == 200;
   }
 
-  // DELETE
   static Future<bool> deleteTask(String id) async {
     final response = await http.delete(Uri.parse('$baseUrl/$id'));
     return response.statusCode == 200;

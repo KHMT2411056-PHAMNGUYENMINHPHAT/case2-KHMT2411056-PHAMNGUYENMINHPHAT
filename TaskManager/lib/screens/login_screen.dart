@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../main.dart';
+import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -80,12 +81,22 @@ class _LoginScreenState extends State<LoginScreen> {
             _isLoading
                 ? const CircularProgressIndicator()
                 : ElevatedButton(
-                    onPressed: _handleLogin,
-                    style: ElevatedButton.styleFrom(
-                      minimumSize: const Size.fromHeight(50),
-                    ),
-                    child: const Text('Đăng nhập'),
-                  ),
+              onPressed: _handleLogin,
+              style: ElevatedButton.styleFrom(
+                minimumSize: const Size.fromHeight(50),
+              ),
+              child: const Text('Đăng nhập'),
+            ),
+            const SizedBox(height: 10),
+            TextButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const RegisterScreen()),
+                );
+              },
+              child: const Text('Chưa có tài khoản? Đăng ký ngay'),
+            ),
           ],
         ),
       ),

@@ -1,11 +1,13 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
+const cors = require('cors');   // thêm dòng này
 
 dotenv.config();
 
 const app = express();
 
+app.use(cors());                // thêm dòng này (trước các route)
 app.use(express.json());
 
 // Routes

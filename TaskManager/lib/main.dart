@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'screens/login_screen.dart';
 import 'models/task.dart';
 import 'services/task_api_service.dart';
 
@@ -18,7 +19,7 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.blue,
         useMaterial3: true,
       ),
-      home: const TaskListScreen(),
+      home: const LoginScreen(),
     );
   }
 }
@@ -48,8 +49,8 @@ class _TaskListScreenState extends State<TaskListScreen> {
   void _showTaskDialog({Task? task}) {
     final titleController = TextEditingController(text: task?.title ?? '');
     final descController = TextEditingController(text: task?.description ?? '');
-    String status = task?.status ?? 'todo';
-    String priority = task?.priority ?? 'medium';
+    String status = task?.status ?? 'Pending';
+    String priority = task?.priority ?? 'Medium';
 
     showDialog(
       context: context,
@@ -69,22 +70,22 @@ class _TaskListScreenState extends State<TaskListScreen> {
               ),
               const SizedBox(height: 10),
               DropdownButtonFormField<String>(
-                value: status,
+                initialValue: status,
                 decoration: const InputDecoration(labelText: 'Trạng thái'),
                 items: const [
-                  DropdownMenuItem(value: 'todo', child: Text('Chưa làm (todo)')),
-                  DropdownMenuItem(value: 'in_progress', child: Text('Đang làm (in_progress)')),
-                  DropdownMenuItem(value: 'completed', child: Text('Đã xong (completed)')),
+                  DropdownMenuItem(value: 'Pending', child: Text('Chưa làm')),
+                  DropdownMenuItem(value: 'InProgress', child: Text('Đang làm')),
+                  DropdownMenuItem(value: 'Completed', child: Text('Đã xong')),
                 ],
                 onChanged: (val) => status = val!,
               ),
               DropdownButtonFormField<String>(
-                value: priority,
+                initialValue: priority,
                 decoration: const InputDecoration(labelText: 'Mức độ ưu tiên'),
                 items: const [
-                  DropdownMenuItem(value: 'low', child: Text('Thấp (low)')),
-                  DropdownMenuItem(value: 'medium', child: Text('Trung bình (medium)')),
-                  DropdownMenuItem(value: 'high', child: Text('Cao (high)')),
+                  DropdownMenuItem(value: 'Low', child: Text('Thấp')),
+                  DropdownMenuItem(value: 'Medium', child: Text('Trung bình')),
+                  DropdownMenuItem(value: 'High', child: Text('Cao')),
                 ],
                 onChanged: (val) => priority = val!,
               ),
@@ -168,7 +169,8 @@ class _TaskListScreenState extends State<TaskListScreen> {
                     task.title,
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
-                  subtitle: Text('${task.description}\nTrạng thái: ${task.status} | Ưu tiên: ${task.priority}'),
+                  subtitle: Text(
+                      '${task.description}\nTrạng thái: ${task.status} | Ưu tiên: ${task.priority}'),
                   isThreeLine: true,
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
