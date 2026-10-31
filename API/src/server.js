@@ -7,11 +7,13 @@ dotenv.config();
 const app = express();
 
 app.use(express.json());
-const taskRoutes =
-  require('./routes/task.routes');
+
+// Routes
+const taskRoutes = require('./routes/task.routes');
+const authRoutes = require('./routes/auth.routes'); // <- Bổ sung route Auth
 
 app.use('/api/tasks', taskRoutes);
-
+app.use('/api/auth', authRoutes); // <- Khai báo endpoint /api/auth
 
 mongoose
   .connect(process.env.MONGODB_URI)
