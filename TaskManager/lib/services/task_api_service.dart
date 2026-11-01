@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import '../models/task.dart';
 
 class TaskApiService {
-  static const String baseUrl = 'http://10.0.2.2:3000/api';
+  static const String baseUrl = 'http://localhost:3000/api';
 
   Future<List<Task>> getTasks() async {
     final response = await http.get(

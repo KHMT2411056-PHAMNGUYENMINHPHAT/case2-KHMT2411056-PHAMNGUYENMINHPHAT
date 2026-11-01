@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'screens/login_screen.dart';
 import 'models/task.dart';
 import 'services/task_api_service.dart';
+import 'screens/profile_screen.dart';
+import 'screens/change_password_screen.dart';
+import 'services/auth_service.dart';
 
 void main() {
   runApp(const MyApp());
@@ -16,8 +20,9 @@ class MyApp extends StatelessWidget {
       title: 'Task Manager',
       theme: ThemeData(
         primarySwatch: Colors.blue,
+        useMaterial3: true,
       ),
-      home: const TaskListScreen(),
+      home: const LoginScreen(),
     );
   }
 }
@@ -30,43 +35,69 @@ class TaskListScreen extends StatefulWidget {
 }
 
 class _TaskListScreenState extends State<TaskListScreen> {
-  final TaskApiService _apiService = TaskApiService();
-  late Future<List<Task>> _futureTasks;
+  late Future<List<Task>> _tasksFuture;
 
   @override
   void initState() {
     super.initState();
-    // Gọi API lấy danh sách công việc khi vừa mở màn hình
-    _futureTasks = _apiService.getTasks();
+    _refreshTasks();
+  }
+
+  void _refreshTasks() {
+    setState(() {
+      _tasksFuture = TaskApiService().getTasks();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Quản Lý Công Việc (Node.js API)'),
+        title: const Text('Danh sách công việc'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _refreshTasks,
+          ),
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.account_circle),
+            onSelected: (value) {
+              if (value == 'profile') {
+                Navigator.push(context,
+                    MaterialPageRoute(builder: (_) => const ProfileScreen()));
+              } else if (value == 'password') {
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const ChangePasswordScreen()));
+              } else if (value == 'logout') {
+                AuthService.logout();
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (_) => const LoginScreen()),
+                      (route) => false,
+                );
+              }
+            },
+            itemBuilder: (context) => const [
+              PopupMenuItem(value: 'profile', child: Text('Thông tin cá nhân')),
+              PopupMenuItem(value: 'password', child: Text('Đổi mật khẩu')),
+              PopupMenuItem(value: 'logout', child: Text('Đăng xuất')),
+            ],
+          ),
+        ],
       ),
       body: FutureBuilder<List<Task>>(
-        future: _futureTasks,
+        future: _tasksFuture,
         builder: (context, snapshot) {
-          // 1. Đang tải dữ liệu
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
+          } else if (snapshot.hasError) {
+            return Center(child: Text('Lỗi kết nối: ${snapshot.error}'));
+          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return const Center(child: Text('Chưa có công việc nào'));
           }
 
-          // 2. Có lỗi khi kết nối
-          if (snapshot.hasError) {
-            return Center(
-              child: Text('Lỗi kết nối: ${snapshot.error}'),
-            );
-          }
-
-          // 3. Không có dữ liệu
-          if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(child: Text('Chưa có công việc nào.'));
-          }
-
-          // 4. Lấy dữ liệu thành công -> Hiển thị danh sách
           final tasks = snapshot.data!;
           return ListView.builder(
             itemCount: tasks.length,
@@ -79,10 +110,9 @@ class _TaskListScreenState extends State<TaskListScreen> {
                     task.title,
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
-                  subtitle: Text('${task.description}\nMức độ: ${task.priority}'),
-                  trailing: Chip(
-                    label: Text(task.status),
-                  ),
+                  subtitle: Text(
+                      '${task.description}\nTrạng thái: ${task.status} | Ưu tiên: ${task.priority}'),
+                  isThreeLine: true,
                 ),
               );
             },
