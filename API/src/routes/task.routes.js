@@ -28,8 +28,9 @@ router.post('/', async (req, res) => {
     const task = new Task({
         title: req.body.title,
         description: req.body.description || '',
-        status: req.body.status || 'todo',
-        priority: req.body.priority || 'medium',
+        status: req.body.status || 'Pending',
+        priority: req.body.priority || 'Medium',
+        startDate: req.body.startDate ? new Date(req.body.startDate) : null,
         dueDate: req.body.dueDate ? new Date(req.body.dueDate) : null
     });
 
