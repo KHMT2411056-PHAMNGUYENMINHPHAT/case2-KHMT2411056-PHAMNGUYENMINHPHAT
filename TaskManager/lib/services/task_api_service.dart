@@ -5,8 +5,22 @@ import '../models/task.dart';
 class TaskApiService {
   static const String baseUrl = 'http://localhost:3000/api/tasks';
 
-  static Future<List<Task>> fetchTasks() async {
-    final response = await http.get(Uri.parse(baseUrl));
+    static Future<List<Task>> fetchTasks({
+    String q = '',
+    String status = '',
+    String priority = '',
+    String sortBy = 'createdAt',
+    String order = 'desc',
+  }) async {
+    final params = <String, String>{
+      if (q.isNotEmpty) 'q': q,
+      if (status.isNotEmpty) 'status': status,
+      if (priority.isNotEmpty) 'priority': priority,
+      'sortBy': sortBy,
+      'order': order,
+    };
+    final uri = Uri.parse(baseUrl).replace(queryParameters: params);
+    final response = await http.get(uri);
     if (response.statusCode == 200) {
       List jsonResponse = json.decode(response.body);
       return jsonResponse.map((data) => Task.fromJson(data)).toList();

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'screens/login_screen.dart';
 import 'screens/profile_screen.dart';
@@ -43,19 +44,40 @@ class TaskListScreen extends StatefulWidget {
 class _TaskListScreenState extends State<TaskListScreen> {
   late Future<List<Task>> _tasksFuture;
 
+  String _search = '';
+  String _statusFilter = '';
+  String _priorityFilter = '';
+  String _sortBy = 'createdAt';
+  String _order = 'desc';
+  Timer? _debounce;
+  final _searchController = TextEditingController();
+
   @override
   void initState() {
     super.initState();
     _refreshTasks();
   }
 
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _searchController.dispose();
+    super.dispose();
+  }
+
   void _refreshTasks() {
     setState(() {
-      _tasksFuture = TaskApiService.fetchTasks();
+      _tasksFuture = TaskApiService.fetchTasks(
+        q: _search,
+        status: _statusFilter,
+        priority: _priorityFilter,
+        sortBy: _sortBy,
+        order: _order,
+      );
     });
   }
 
-    void _showTaskDialog({Task? task}) {
+  void _showTaskDialog({Task? task}) {
     final titleController = TextEditingController(text: task?.title ?? '');
     final descController = TextEditingController(text: task?.description ?? '');
     String status = task?.status ?? 'Pending';
@@ -180,7 +202,8 @@ class _TaskListScreenState extends State<TaskListScreen> {
               ElevatedButton(
                 onPressed: () async {
                   if (titleController.text.trim().isEmpty) {
-                    setDialogState(() => error = 'Tên công việc không được để trống');
+                    setDialogState(
+                        () => error = 'Tên công việc không được để trống');
                     return;
                   }
                   if (startDate != null &&
@@ -245,9 +268,127 @@ class _TaskListScreenState extends State<TaskListScreen> {
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (_) => const LoginScreen()),
-            (route) => false,
+        (route) => false,
       );
     }
+  }
+
+  Widget _filterDropdown({
+    required String label,
+    required String value,
+    required Map<String, String> options,
+    required ValueChanged<String> onChanged,
+  }) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text('$label: '),
+        DropdownButton<String>(
+          value: value,
+          items: options.entries
+              .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value)))
+              .toList(),
+          onChanged: (v) {
+            if (v != null) onChanged(v);
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFilterBar() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(10, 10, 10, 0),
+      child: Column(
+        children: [
+          TextField(
+            controller: _searchController,
+            decoration: InputDecoration(
+              hintText: 'Tìm theo tên công việc',
+              prefixIcon: const Icon(Icons.search),
+              suffixIcon: _search.isEmpty
+                  ? null
+                  : IconButton(
+                      icon: const Icon(Icons.clear),
+                      onPressed: () {
+                        _searchController.clear();
+                        _search = '';
+                        _refreshTasks();
+                      },
+                    ),
+              border: const OutlineInputBorder(),
+              isDense: true,
+            ),
+            onChanged: (v) {
+              _debounce?.cancel();
+              _debounce = Timer(const Duration(milliseconds: 400), () {
+                _search = v.trim();
+                _refreshTasks();
+              });
+            },
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 16,
+            runSpacing: 4,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              _filterDropdown(
+                label: 'Trạng thái',
+                value: _statusFilter,
+                options: const {
+                  '': 'Tất cả',
+                  'Pending': 'Chưa làm',
+                  'InProgress': 'Đang làm',
+                  'Completed': 'Đã xong',
+                },
+                onChanged: (v) {
+                  _statusFilter = v;
+                  _refreshTasks();
+                },
+              ),
+              _filterDropdown(
+                label: 'Ưu tiên',
+                value: _priorityFilter,
+                options: const {
+                  '': 'Tất cả',
+                  'Low': 'Thấp',
+                  'Medium': 'Trung bình',
+                  'High': 'Cao',
+                },
+                onChanged: (v) {
+                  _priorityFilter = v;
+                  _refreshTasks();
+                },
+              ),
+              _filterDropdown(
+                label: 'Sắp xếp',
+                value: _sortBy,
+                options: const {
+                  'createdAt': 'Thời gian tạo',
+                  'dueDate': 'Hạn hoàn thành',
+                  'priority': 'Mức ưu tiên',
+                },
+                onChanged: (v) {
+                  _sortBy = v;
+                  _refreshTasks();
+                },
+              ),
+              IconButton(
+                tooltip: _order == 'asc' ? 'Tăng dần' : 'Giảm dần',
+                icon: Icon(_order == 'asc'
+                    ? Icons.arrow_upward
+                    : Icons.arrow_downward),
+                onPressed: () {
+                  _order = _order == 'asc' ? 'desc' : 'asc';
+                  _refreshTasks();
+                },
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -271,52 +412,61 @@ class _TaskListScreenState extends State<TaskListScreen> {
           ),
         ],
       ),
-      body: FutureBuilder<List<Task>>(
-        future: _tasksFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return Center(child: Text('Lỗi kết nối: ${snapshot.error}'));
-          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(child: Text('Chưa có công việc nào'));
-          }
+      body: Column(
+        children: [
+          _buildFilterBar(),
+          Expanded(
+            child: FutureBuilder<List<Task>>(
+              future: _tasksFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                } else if (snapshot.hasError) {
+                  return Center(child: Text('Lỗi kết nối: ${snapshot.error}'));
+                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return const Center(
+                      child: Text('Không có công việc phù hợp'));
+                }
 
-          final tasks = snapshot.data!;
-          return ListView.builder(
-            itemCount: tasks.length,
-            itemBuilder: (context, index) {
-              final task = tasks[index];
-              return Card(
-                margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                child: ListTile(
-                  title: Text(
-                    task.title,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  subtitle: Text(
-                      '${task.description}\n'
-                      'Trạng thái: ${task.status} | Ưu tiên: ${task.priority}\n'
-                      'Bắt đầu: ${_fmtDate(task.startDate)} | Hạn: ${_fmtDate(task.dueDate)}'),
-                  isThreeLine: true,
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.edit, color: Colors.blue),
-                        onPressed: () => _showTaskDialog(task: task),
+                final tasks = snapshot.data!;
+                return ListView.builder(
+                  itemCount: tasks.length,
+                  itemBuilder: (context, index) {
+                    final task = tasks[index];
+                    return Card(
+                      margin: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 5),
+                      child: ListTile(
+                        title: Text(
+                          task.title,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        subtitle: Text(
+                            '${task.description}\n'
+                            'Trạng thái: ${task.status} | Ưu tiên: ${task.priority}\n'
+                            'Bắt đầu: ${_fmtDate(task.startDate)} | Hạn: ${_fmtDate(task.dueDate)}'),
+                        isThreeLine: true,
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.edit, color: Colors.blue),
+                              onPressed: () => _showTaskDialog(task: task),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.delete, color: Colors.red),
+                              onPressed: () => _deleteTask(task.id),
+                            ),
+                          ],
+                        ),
                       ),
-                      IconButton(
-                        icon: const Icon(Icons.delete, color: Colors.red),
-                        onPressed: () => _deleteTask(task.id),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          );
-        },
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showTaskDialog(),

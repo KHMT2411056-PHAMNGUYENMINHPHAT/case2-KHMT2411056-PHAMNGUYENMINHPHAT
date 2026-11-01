@@ -2,10 +2,38 @@ const express = require('express');
 const router = express.Router();
 const Task = require('../models/task.model');
 
-// 1. GET: Lấy danh sách công việc
+// 1. GET: Lấy danh sách công việc (tìm kiếm, lọc, sắp xếp)
 router.get('/', async (req, res) => {
     try {
-        const tasks = await Task.find().sort({ createdAt: -1 });
+        const { q, status, priority, sortBy = 'createdAt', order = 'desc' } = req.query;
+
+        const filter = {};
+        if (q && q.trim()) {
+            const escaped = q.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            filter.title = { $regex: escaped, $options: 'i' };
+        }
+        if (status) filter.status = status;
+        if (priority) filter.priority = priority;
+
+        const tasks = await Task.find(filter);
+
+        const dir = order === 'asc' ? 1 : -1;
+        const rank = { Low: 1, Medium: 2, High: 3 };
+
+        tasks.sort((a, b) => {
+            if (sortBy === 'priority') {
+                return (rank[a.priority] - rank[b.priority]) * dir;
+            }
+            if (sortBy === 'dueDate') {
+                // công việc chưa có hạn luôn nằm cuối
+                if (!a.dueDate && !b.dueDate) return 0;
+                if (!a.dueDate) return 1;
+                if (!b.dueDate) return -1;
+                return (a.dueDate - b.dueDate) * dir;
+            }
+            return (a.createdAt - b.createdAt) * dir;
+        });
+
         res.json(tasks);
     } catch (err) {
         res.status(500).json({ message: err.message });
