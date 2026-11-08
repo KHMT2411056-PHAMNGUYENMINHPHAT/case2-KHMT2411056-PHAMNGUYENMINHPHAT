@@ -6,6 +6,7 @@ import 'screens/chance_password_screen.dart';
 import 'models/task.dart';
 import 'services/task_api_service.dart';
 import 'services/auth_service.dart';
+import 'screens/assignment/assign_task_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -244,6 +245,17 @@ class _TaskListScreenState extends State<TaskListScreen> {
     );
   }
 
+  // Phần C2: mở màn hình giao việc (chỉ người tạo được giao, API trả 403 nếu không có quyền)
+  Future<void> _openAssign(Task task) async {
+    final changed = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AssignTaskScreen(taskId: task.id, taskTitle: task.title),
+      ),
+    );
+    if (changed == true) _refreshTasks();
+  }
+
   void _deleteTask(String id) async {
     bool success = await TaskApiService.deleteTask(id);
     if (success) {
@@ -449,6 +461,12 @@ class _TaskListScreenState extends State<TaskListScreen> {
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
+                            IconButton(
+                              tooltip: 'Giao việc',
+                              icon: const Icon(Icons.person_add_alt_1,
+                                  color: Colors.green),
+                              onPressed: () => _openAssign(task),
+                            ),
                             IconButton(
                               icon: const Icon(Icons.edit, color: Colors.blue),
                               onPressed: () => _showTaskDialog(task: task),
