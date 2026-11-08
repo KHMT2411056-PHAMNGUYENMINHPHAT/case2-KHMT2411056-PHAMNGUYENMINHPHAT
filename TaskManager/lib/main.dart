@@ -80,8 +80,8 @@ class _TaskListScreenState extends State<TaskListScreen> {
   void _showTaskDialog({Task? task}) {
     final titleController = TextEditingController(text: task?.title ?? '');
     final descController = TextEditingController(text: task?.description ?? '');
-    String status = task?.status ?? 'Pending';
-    String priority = task?.priority ?? 'Medium';
+    String status = task?.status ?? 'todo';
+    String priority = task?.priority ?? 'medium';
     DateTime? startDate = task?.startDate;
     DateTime? dueDate = task?.dueDate;
     String? error;
@@ -128,9 +128,9 @@ class _TaskListScreenState extends State<TaskListScreen> {
                     initialValue: status,
                     decoration: const InputDecoration(labelText: 'Trạng thái'),
                     items: const [
-                      DropdownMenuItem(value: 'Pending', child: Text('Chưa làm')),
-                      DropdownMenuItem(value: 'InProgress', child: Text('Đang làm')),
-                      DropdownMenuItem(value: 'Completed', child: Text('Đã xong')),
+                      DropdownMenuItem(value: 'todo', child: Text('Chưa làm')),
+                      DropdownMenuItem(value: 'in_progress', child: Text('Đang làm')),
+                      DropdownMenuItem(value: 'completed', child: Text('Đã xong')),
                     ],
                     onChanged: (val) => status = val!,
                   ),
@@ -138,9 +138,9 @@ class _TaskListScreenState extends State<TaskListScreen> {
                     initialValue: priority,
                     decoration: const InputDecoration(labelText: 'Mức độ ưu tiên'),
                     items: const [
-                      DropdownMenuItem(value: 'Low', child: Text('Thấp')),
-                      DropdownMenuItem(value: 'Medium', child: Text('Trung bình')),
-                      DropdownMenuItem(value: 'High', child: Text('Cao')),
+                      DropdownMenuItem(value: 'low', child: Text('Thấp')),
+                      DropdownMenuItem(value: 'medium', child: Text('Trung bình')),
+                      DropdownMenuItem(value: 'high', child: Text('Cao')),
                     ],
                     onChanged: (val) => priority = val!,
                   ),
@@ -338,9 +338,9 @@ class _TaskListScreenState extends State<TaskListScreen> {
                 value: _statusFilter,
                 options: const {
                   '': 'Tất cả',
-                  'Pending': 'Chưa làm',
-                  'InProgress': 'Đang làm',
-                  'Completed': 'Đã xong',
+                  'todo': 'Chưa làm',
+                  'in_progress': 'Đang làm',
+                  'completed': 'Đã xong',
                 },
                 onChanged: (v) {
                   _statusFilter = v;
@@ -352,9 +352,9 @@ class _TaskListScreenState extends State<TaskListScreen> {
                 value: _priorityFilter,
                 options: const {
                   '': 'Tất cả',
-                  'Low': 'Thấp',
-                  'Medium': 'Trung bình',
-                  'High': 'Cao',
+                  'low': 'Thấp',
+                  'medium': 'Trung bình',
+                  'high': 'Cao',
                 },
                 onChanged: (v) {
                   _priorityFilter = v;

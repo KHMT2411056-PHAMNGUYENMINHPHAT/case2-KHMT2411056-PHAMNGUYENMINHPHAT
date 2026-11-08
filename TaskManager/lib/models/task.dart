@@ -25,8 +25,8 @@ class Task {
       title: json['title'] ?? '',
       description: json['description'] ?? '',
       category: json['category'] ?? '',
-      priority: json['priority'] ?? 'Medium',
-      status: json['status'] ?? 'Pending',
+      priority: _normPriority(json['priority']),
+      status: _normStatus(json['status']),
       startDate: json['startDate'] != null
           ? DateTime.parse(json['startDate']).toLocal()
           : null,
@@ -34,5 +34,19 @@ class Task {
           ? DateTime.parse(json['dueDate']).toLocal()
           : null,
     );
+  }
+
+  // Phần C dùng: todo | in_progress | completed và low | medium | high
+  // (vẫn đọc được giá trị cũ của phần B: Pending/InProgress/Completed, Low/Medium/High)
+  static String _normStatus(dynamic v) {
+    final s = (v ?? '').toString().trim().toLowerCase();
+    if (s == 'pending' || s.isEmpty) return 'todo';
+    if (s == 'inprogress') return 'in_progress';
+    return s;
+  }
+
+  static String _normPriority(dynamic v) {
+    final s = (v ?? '').toString().trim().toLowerCase();
+    return s.isEmpty ? 'medium' : s;
   }
 }
