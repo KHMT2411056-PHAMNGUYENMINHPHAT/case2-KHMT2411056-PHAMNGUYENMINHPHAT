@@ -7,6 +7,9 @@ class Task {
   final String status;
   final DateTime? startDate;
   final DateTime? dueDate;
+  final String? myRole; // owner | assignee | editor | viewer (phần C)
+
+  bool get isOwner => myRole == 'owner';
 
   Task({
     required this.id,
@@ -17,6 +20,7 @@ class Task {
     required this.status,
     this.startDate,
     this.dueDate,
+    this.myRole,
   });
 
   factory Task.fromJson(Map<String, dynamic> json) {
@@ -33,6 +37,7 @@ class Task {
       dueDate: json['dueDate'] != null
           ? DateTime.parse(json['dueDate']).toLocal()
           : null,
+      myRole: json['myRole']?.toString(),
     );
   }
 

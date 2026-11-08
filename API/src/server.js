@@ -15,10 +15,12 @@ const taskRoutes = require('./routes/task.routes');
 const authRoutes = require('./routes/auth.routes'); // <- Bổ sung route Auth
 const userRoutes = require('./routes/user.routes');             // Phần C
 const assignmentRoutes = require('./routes/assignment.routes'); // Phần C
+const shareRoutes = require('./routes/share.routes');           // Phần C
 
 // Các route con của /api/tasks/:id/... phải đặt TRƯỚC /api/tasks
 app.use('/api/users', userRoutes);
 app.use('/api/tasks/:id/assignees', assignmentRoutes);
+app.use('/api/tasks/:id/shares', shareRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/auth', authRoutes); // <- Khai báo endpoint /api/auth
 

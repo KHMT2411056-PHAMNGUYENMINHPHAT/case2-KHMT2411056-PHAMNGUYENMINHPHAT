@@ -7,6 +7,7 @@ import 'models/task.dart';
 import 'services/task_api_service.dart';
 import 'services/auth_service.dart';
 import 'screens/assignment/assign_task_screen.dart';
+import 'screens/sharing/task_sharing_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -256,6 +257,21 @@ class _TaskListScreenState extends State<TaskListScreen> {
     if (changed == true) _refreshTasks();
   }
 
+  // Phần C3: chia sẻ & quyền truy cập (chỉ người tạo được thêm/đổi/thu hồi; người khác chỉ xem)
+  Future<void> _openSharing(Task task) async {
+    final changed = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => TaskSharingScreen(
+          taskId: task.id,
+          taskTitle: task.title,
+          canManage: task.isOwner,
+        ),
+      ),
+    );
+    if (changed == true) _refreshTasks();
+  }
+
   void _deleteTask(String id) async {
     bool success = await TaskApiService.deleteTask(id);
     if (success) {
@@ -461,11 +477,32 @@ class _TaskListScreenState extends State<TaskListScreen> {
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            IconButton(
-                              tooltip: 'Giao việc',
-                              icon: const Icon(Icons.person_add_alt_1,
-                                  color: Colors.green),
-                              onPressed: () => _openAssign(task),
+                            PopupMenuButton<String>(
+                              tooltip: 'Giao việc / Chia sẻ',
+                              onSelected: (v) => v == 'assign'
+                                  ? _openAssign(task)
+                                  : _openSharing(task),
+                              itemBuilder: (_) => [
+                                if (task.isOwner)
+                                  const PopupMenuItem(
+                                    value: 'assign',
+                                    child: ListTile(
+                                      leading: Icon(Icons.person_add_alt_1,
+                                          color: Colors.green),
+                                      title: Text('Giao việc'),
+                                    ),
+                                  ),
+                                PopupMenuItem(
+                                  value: 'share',
+                                  child: ListTile(
+                                    leading: const Icon(Icons.share,
+                                        color: Colors.indigo),
+                                    title: Text(task.isOwner
+                                        ? 'Chia sẻ & quyền'
+                                        : 'Thành viên'),
+                                  ),
+                                ),
+                              ],
                             ),
                             IconButton(
                               icon: const Icon(Icons.edit, color: Colors.blue),
