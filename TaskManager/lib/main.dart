@@ -8,6 +8,9 @@ import 'services/task_api_service.dart';
 import 'services/auth_service.dart';
 import 'screens/assignment/assign_task_screen.dart';
 import 'screens/sharing/task_sharing_screen.dart';
+import 'screens/tasks/task_detail_screen.dart';
+import 'widgets/badges.dart';
+import 'widgets/loading_view.dart';
 
 void main() {
   runApp(const MyApp());
@@ -49,6 +52,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
   String _search = '';
   String _statusFilter = '';
   String _priorityFilter = '';
+  String _scopeFilter = ''; // '' = tất cả | created | assigned | shared (phần C4)
   String _sortBy = 'createdAt';
   String _order = 'desc';
   Timer? _debounce;
@@ -73,13 +77,15 @@ class _TaskListScreenState extends State<TaskListScreen> {
         q: _search,
         status: _statusFilter,
         priority: _priorityFilter,
+        scope: _scopeFilter,
         sortBy: _sortBy,
         order: _order,
       );
     });
   }
 
-  void _showTaskDialog({Task? task}) {
+  // Trả về true nếu đã lưu (dùng lại cho nút "Chỉnh sửa" ở màn hình chi tiết)
+  Future<bool> _showTaskDialog({Task? task}) async {
     final titleController = TextEditingController(text: task?.title ?? '');
     final descController = TextEditingController(text: task?.description ?? '');
     String status = task?.status ?? 'todo';
@@ -88,7 +94,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
     DateTime? dueDate = task?.dueDate;
     String? error;
 
-    showDialog(
+    final saved = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) {
@@ -232,9 +238,13 @@ class _TaskListScreenState extends State<TaskListScreen> {
                     success = await TaskApiService.updateTask(task.id, data);
                   }
 
-                  if (success && mounted) {
-                    Navigator.pop(dialogContext);
-                    _refreshTasks();
+                  if (!dialogContext.mounted) return;
+                  if (success) {
+                    Navigator.pop(dialogContext, true);
+                  } else {
+                    setDialogState(() => error = task == null
+                        ? 'Không tạo được công việc'
+                        : 'Không lưu được (có thể bạn không có quyền sửa)');
                   }
                 },
                 child: Text(task == null ? 'Thêm' : 'Lưu'),
@@ -244,6 +254,35 @@ class _TaskListScreenState extends State<TaskListScreen> {
         },
       ),
     );
+    if (saved == true) _refreshTasks();
+    return saved == true;
+  }
+
+  // Phần C4: mở màn hình chi tiết (người được giao, chia sẻ, tiến độ, vai trò)
+  Future<void> _openDetail(Task task) async {
+    final changed = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => TaskDetailScreen(
+          taskId: task.id,
+          // Dùng lại hộp thoại sửa của phần B với dữ liệu mới nhất từ màn hình chi tiết
+          onEdit: (ctx, t) => _showTaskDialog(
+            task: Task(
+              id: t.id,
+              title: t.title,
+              description: t.description,
+              category: task.category,
+              priority: t.priority,
+              status: t.status,
+              startDate: t.startDate,
+              dueDate: t.dueDate,
+              myRole: t.myRole,
+            ),
+          ),
+        ),
+      ),
+    );
+    if (changed == true) _refreshTasks();
   }
 
   // Phần C2: mở màn hình giao việc (chỉ người tạo được giao, API trả 403 nếu không có quyền)
@@ -273,9 +312,18 @@ class _TaskListScreenState extends State<TaskListScreen> {
   }
 
   void _deleteTask(String id) async {
+    final ok = await confirmDialog(context,
+        title: 'Xóa công việc',
+        message: 'Bạn chắc chắn muốn xóa công việc này?',
+        okText: 'Xóa');
+    if (!ok) return;
     bool success = await TaskApiService.deleteTask(id);
+    if (!mounted) return;
     if (success) {
+      showResult(context, 'Đã xóa công việc');
       _refreshTasks();
+    } else {
+      showResult(context, 'Không xóa được (chỉ người tạo được xóa)', error: true);
     }
   }
 
@@ -361,6 +409,20 @@ class _TaskListScreenState extends State<TaskListScreen> {
             runSpacing: 4,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
+              _filterDropdown(
+                label: 'Phạm vi',
+                value: _scopeFilter,
+                options: const {
+                  '': 'Tất cả',
+                  'created': 'Của tôi',
+                  'assigned': 'Được giao',
+                  'shared': 'Được chia sẻ',
+                },
+                onChanged: (v) {
+                  _scopeFilter = v;
+                  _refreshTasks();
+                },
+              ),
               _filterDropdown(
                 label: 'Trạng thái',
                 value: _statusFilter,
@@ -465,14 +527,29 @@ class _TaskListScreenState extends State<TaskListScreen> {
                       margin: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 5),
                       child: ListTile(
+                        onTap: () => _openDetail(task),
                         title: Text(
                           task.title,
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
-                        subtitle: Text(
-                            '${task.description}\n'
-                            'Trạng thái: ${task.status} | Ưu tiên: ${task.priority}\n'
-                            'Bắt đầu: ${_fmtDate(task.startDate)} | Hạn: ${_fmtDate(task.dueDate)}'),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (task.description.isNotEmpty)
+                              Text(task.description,
+                                  maxLines: 2, overflow: TextOverflow.ellipsis),
+                            const SizedBox(height: 4),
+                            // Phân loại theo vai trò + trạng thái + ưu tiên
+                            Wrap(spacing: 6, runSpacing: 4, children: [
+                              RoleBadge(task.myRole),
+                              StatusBadge(task.status),
+                              PriorityBadge(task.priority),
+                            ]),
+                            const SizedBox(height: 4),
+                            Text(
+                                'Bắt đầu: ${_fmtDate(task.startDate)} | Hạn: ${_fmtDate(task.dueDate)}'),
+                          ],
+                        ),
                         isThreeLine: true,
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -504,14 +581,18 @@ class _TaskListScreenState extends State<TaskListScreen> {
                                 ),
                               ],
                             ),
-                            IconButton(
-                              icon: const Icon(Icons.edit, color: Colors.blue),
-                              onPressed: () => _showTaskDialog(task: task),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.delete, color: Colors.red),
-                              onPressed: () => _deleteTask(task.id),
-                            ),
+                            if (task.canEdit)
+                              IconButton(
+                                tooltip: 'Chỉnh sửa',
+                                icon: const Icon(Icons.edit, color: Colors.blue),
+                                onPressed: () => _showTaskDialog(task: task),
+                              ),
+                            if (task.isOwner)
+                              IconButton(
+                                tooltip: 'Xóa',
+                                icon: const Icon(Icons.delete, color: Colors.red),
+                                onPressed: () => _deleteTask(task.id),
+                              ),
                           ],
                         ),
                       ),

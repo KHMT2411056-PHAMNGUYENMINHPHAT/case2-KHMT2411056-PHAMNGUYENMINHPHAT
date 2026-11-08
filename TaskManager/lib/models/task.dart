@@ -10,6 +10,8 @@ class Task {
   final String? myRole; // owner | assignee | editor | viewer (phần C)
 
   bool get isOwner => myRole == 'owner';
+  // Sửa thông tin: người tạo hoặc được chia sẻ quyền editor (khớp utils/permission.js)
+  bool get canEdit => myRole == 'owner' || myRole == 'editor';
 
   Task({
     required this.id,
