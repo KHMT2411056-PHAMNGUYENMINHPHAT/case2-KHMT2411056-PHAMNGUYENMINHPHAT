@@ -18,6 +18,7 @@ const assignmentRoutes = require('./routes/assignment.routes'); // Phần C
 const shareRoutes = require('./routes/share.routes');           // Phần C
 const notificationRoutes = require('./routes/notification.routes'); // Phần D
 const emailLogRoutes = require('./routes/email_log.routes');         // Phần D
+const statisticsRoutes = require('./routes/statistics.routes');      // Phần E
 const { verifyEmailConfig } = require('./config/email');        // Phần D
 const { startReminderJob } = require('./jobs/reminder.job');    // Phần D
 
@@ -28,6 +29,7 @@ app.use('/api/tasks/:id/shares', shareRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/auth', authRoutes); // <- Khai báo endpoint /api/auth
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/statistics', statisticsRoutes);
 app.use('/api', emailLogRoutes); // LUÔN đặt SAU tất cả app.use('/api/...') khác
 
 mongoose
