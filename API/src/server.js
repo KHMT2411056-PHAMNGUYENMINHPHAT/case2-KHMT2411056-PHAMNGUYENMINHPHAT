@@ -16,6 +16,7 @@ const authRoutes = require('./routes/auth.routes'); // <- Bổ sung route Auth
 const userRoutes = require('./routes/user.routes');             // Phần C
 const assignmentRoutes = require('./routes/assignment.routes'); // Phần C
 const shareRoutes = require('./routes/share.routes');           // Phần C
+const { verifyEmailConfig } = require('./config/email');        // Phần D
 
 // Các route con của /api/tasks/:id/... phải đặt TRƯỚC /api/tasks
 app.use('/api/users', userRoutes);
@@ -28,6 +29,7 @@ mongoose
   .connect(process.env.MONGODB_URI)
   .then(() => {
     console.log('MongoDB connected');
+    verifyEmailConfig(); // Phần D1: kiểm tra kết nối SMTP (chỉ in log)
   })
   .catch((error) => {
     console.error(
