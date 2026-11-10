@@ -11,6 +11,7 @@ import 'screens/sharing/task_sharing_screen.dart';
 import 'screens/tasks/task_detail_screen.dart';
 import 'widgets/badges.dart';
 import 'widgets/loading_view.dart';
+import 'widgets/notification_bell.dart';
 
 void main() {
   runApp(const MyApp());
@@ -487,6 +488,8 @@ class _TaskListScreenState extends State<TaskListScreen> {
       appBar: AppBar(
         title: const Text('Quản Lý Công Việc (Node.js API)'),
         actions: [
+          // Phần D5: chuông thông báo + số chưa đọc (tự cập nhật mỗi 30 giây)
+          NotificationBell(onClosed: _refreshTasks),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _refreshTasks,
