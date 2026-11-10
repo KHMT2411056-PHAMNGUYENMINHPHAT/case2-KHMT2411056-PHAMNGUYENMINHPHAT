@@ -86,6 +86,26 @@ class _TaskListScreenState extends State<TaskListScreen> {
     });
   }
 
+  // Kéo xuống để làm mới danh sách
+  Future<void> _pullToRefresh() async {
+    _refreshTasks();
+    try {
+      await _tasksFuture;
+    } catch (_) {
+      // Lỗi đã được FutureBuilder hiển thị bằng ErrorView
+    }
+  }
+
+  // Thông báo lỗi dễ hiểu (bỏ tiền tố "Exception: ", lỗi mạng -> câu tiếng Việt)
+  String _errorText(Object? e) {
+    final s = (e ?? '').toString();
+    if (s.contains('ClientException') || s.contains('Failed to fetch') ||
+        s.contains('SocketException')) {
+      return 'Không kết nối được máy chủ. Kiểm tra backend đã chạy chưa.';
+    }
+    return s.replaceFirst('Exception: ', '');
+  }
+
   // Trả về true nếu đã lưu (dùng lại cho nút "Chỉnh sửa" ở màn hình chi tiết)
   Future<bool> _showTaskDialog({Task? task}) async {
     final titleController = TextEditingController(text: task?.title ?? '');
@@ -234,15 +254,27 @@ class _TaskListScreenState extends State<TaskListScreen> {
                   };
 
                   bool success;
-                  if (task == null) {
-                    success = await TaskApiService.createTask(data);
-                  } else {
-                    success = await TaskApiService.updateTask(task.id, data);
+                  try {
+                    if (task == null) {
+                      success = await TaskApiService.createTask(data);
+                    } else {
+                      success = await TaskApiService.updateTask(task.id, data);
+                    }
+                  } catch (e) {
+                    // Lỗi mạng: hiện ngay trong hộp thoại
+                    if (dialogContext.mounted) {
+                      setDialogState(() => error = _errorText(e));
+                    }
+                    return;
                   }
 
                   if (!dialogContext.mounted) return;
                   if (success) {
                     Navigator.pop(dialogContext, true);
+                    if (mounted) {
+                      showResult(this.context,
+                          task == null ? 'Đã thêm công việc' : 'Đã lưu thay đổi');
+                    }
                   } else {
                     setDialogState(() => error = task == null
                         ? 'Không tạo được công việc'
@@ -319,7 +351,13 @@ class _TaskListScreenState extends State<TaskListScreen> {
         message: 'Bạn chắc chắn muốn xóa công việc này?',
         okText: 'Xóa');
     if (!ok) return;
-    bool success = await TaskApiService.deleteTask(id);
+    bool success;
+    try {
+      success = await TaskApiService.deleteTask(id);
+    } catch (e) {
+      if (mounted) showResult(context, _errorText(e), error: true);
+      return;
+    }
     if (!mounted) return;
     if (success) {
       showResult(context, 'Đã xóa công việc');
@@ -520,17 +558,31 @@ class _TaskListScreenState extends State<TaskListScreen> {
             child: FutureBuilder<List<Task>>(
               future: _tasksFuture,
               builder: (context, snapshot) {
+                // Phần E4: trạng thái tải / lỗi / rỗng thống nhất với các màn hình mới
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
+                  return const LoadingView(message: 'Đang tải công việc...');
                 } else if (snapshot.hasError) {
-                  return Center(child: Text('Lỗi kết nối: ${snapshot.error}'));
+                  return ErrorView(
+                    message: _errorText(snapshot.error),
+                    onRetry: _refreshTasks,
+                  );
                 } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return const Center(
-                      child: Text('Không có công việc phù hợp'));
+                  return RefreshIndicator(
+                    onRefresh: _pullToRefresh,
+                    child: ListView(children: const [
+                      SizedBox(height: 80),
+                      EmptyView(
+                        message: 'Không có công việc phù hợp.\nBấm + để thêm công việc mới.',
+                        icon: Icons.assignment_outlined,
+                      ),
+                    ]),
+                  );
                 }
 
                 final tasks = snapshot.data!;
-                return ListView.builder(
+                return RefreshIndicator(
+                  onRefresh: _pullToRefresh,
+                  child: ListView.builder(
                   itemCount: tasks.length,
                   itemBuilder: (context, index) {
                     final task = tasks[index];
@@ -609,6 +661,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
                       ),
                     );
                   },
+                  ),
                 );
               },
             ),

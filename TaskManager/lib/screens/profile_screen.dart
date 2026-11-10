@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import 'statistics/statistics_screen.dart';
+import '../widgets/loading_view.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -16,6 +17,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _loading = true;
   bool _saving = false;
   String? _message;
+  String? _loadError; // lỗi khi tải hồ sơ -> hiện ErrorView + nút Thử lại
 
   @override
   void initState() {
@@ -30,7 +32,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.dispose();
   }
 
-    Future<void> _loadProfile() async {
+  Future<void> _loadProfile() async {
+    setState(() {
+      _loading = true;
+      _loadError = null;
+    });
     final data = await AuthService.getProfile();
     if (!mounted) return;
     setState(() {
@@ -40,7 +46,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _avatarController.text = data['avatarUrl'] ?? '';
         _email = data['email'] ?? '';
       } else {
-        _message = data['message'] ?? 'Không tải được thông tin';
+        _loadError = data['message'] ?? 'Không tải được thông tin';
       }
     });
   }
@@ -59,10 +65,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _avatarController.text.trim(),
     );
     if (!mounted) return;
+    final ok = data['user'] != null;
     setState(() {
       _saving = false;
       _message = data['message'];
     });
+    showResult(context, data['message'] ?? (ok ? 'Đã lưu' : 'Lưu thất bại'), error: !ok);
   }
 
   @override
@@ -70,8 +78,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Thông tin cá nhân')),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : Padding(
+          ? const LoadingView(message: 'Đang tải thông tin...')
+          : _loadError != null
+              ? ErrorView(message: _loadError!, onRetry: _loadProfile)
+              : Padding(
         padding: const EdgeInsets.all(20),
         child: ListView(
           children: [

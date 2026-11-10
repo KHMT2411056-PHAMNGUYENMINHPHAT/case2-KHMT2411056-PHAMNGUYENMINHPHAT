@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import '../widgets/loading_view.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -31,21 +32,28 @@ class _RegisterScreenState extends State<RegisterScreen> {
     });
 
     final result = await AuthService.register(fullName, email, password);
+    if (!mounted) return;
 
     setState(() {
       _isLoading = false;
     });
 
     if (result.containsKey('message') && result['message'] == 'Đăng ký tài khoản thành công') {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Đăng ký thành công! Vui lòng đăng nhập.')),
-        );
-        Navigator.pop(context);
-      }
+      showResult(context, 'Đăng ký thành công! Vui lòng đăng nhập.');
+      Navigator.pop(context);
     } else {
-      setState(() => _errorMessage = result['message'] ?? 'Đăng ký thất bại');
+      final msg = result['message'] ?? 'Đăng ký thất bại';
+      setState(() => _errorMessage = msg);
+      showResult(context, msg, error: true);
     }
+  }
+
+  @override
+  void dispose() {
+    _fullNameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
   }
 
   @override
@@ -86,14 +94,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
               Text(_errorMessage, style: const TextStyle(color: Colors.red)),
             ],
             const SizedBox(height: 20),
-            _isLoading
-                ? const CircularProgressIndicator()
-                : ElevatedButton(
-              onPressed: _handleRegister,
+            ElevatedButton(
+              onPressed: _isLoading ? null : _handleRegister,
               style: ElevatedButton.styleFrom(
                 minimumSize: const Size.fromHeight(50),
               ),
-              child: const Text('Đăng ký'),
+              child: _isLoading
+                  ? const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2)),
+                        SizedBox(width: 10),
+                        Text('Đang đăng ký...'),
+                      ],
+                    )
+                  : const Text('Đăng ký'),
             ),
           ],
         ),

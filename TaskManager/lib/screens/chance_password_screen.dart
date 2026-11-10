@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import '../widgets/loading_view.dart';
 
 class ChangePasswordScreen extends StatefulWidget {
   const ChangePasswordScreen({super.key});
@@ -61,6 +62,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       _success = ok;
       _message = data['message'];
     });
+    // Phần E4: báo kết quả thao tác bằng SnackBar xanh/đỏ
+    showResult(context, data['message'] ?? (ok ? 'Đổi mật khẩu thành công' : 'Đổi mật khẩu thất bại'),
+        error: !ok);
     if (ok) {
       _oldController.clear();
       _newController.clear();

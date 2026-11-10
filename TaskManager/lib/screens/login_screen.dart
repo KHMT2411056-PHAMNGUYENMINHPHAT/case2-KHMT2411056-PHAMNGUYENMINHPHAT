@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../main.dart';
 import 'register_screen.dart';
+import '../widgets/loading_view.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -31,21 +32,31 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     final result = await AuthService.login(email, password);
+    if (!mounted) return;
 
     setState(() {
       _isLoading = false;
     });
 
     if (result.containsKey('token')) {
-      if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const TaskListScreen()),
-        );
-      }
+      showResult(context, 'Đăng nhập thành công');
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const TaskListScreen()),
+      );
     } else {
-      setState(() => _errorMessage = result['message'] ?? 'Đăng nhập thất bại');
+      // Phần E4: lỗi từ server hiện bằng SnackBar đỏ + giữ dòng lỗi dưới form
+      final msg = result['message'] ?? 'Đăng nhập thất bại';
+      setState(() => _errorMessage = msg);
+      showResult(context, msg, error: true);
     }
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
   }
 
   @override
@@ -78,14 +89,24 @@ class _LoginScreenState extends State<LoginScreen> {
               Text(_errorMessage, style: const TextStyle(color: Colors.red)),
             ],
             const SizedBox(height: 20),
-            _isLoading
-                ? const CircularProgressIndicator()
-                : ElevatedButton(
-              onPressed: _handleLogin,
+            ElevatedButton(
+              onPressed: _isLoading ? null : _handleLogin,
               style: ElevatedButton.styleFrom(
                 minimumSize: const Size.fromHeight(50),
               ),
-              child: const Text('Đăng nhập'),
+              child: _isLoading
+                  ? const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2)),
+                        SizedBox(width: 10),
+                        Text('Đang đăng nhập...'),
+                      ],
+                    )
+                  : const Text('Đăng nhập'),
             ),
             const SizedBox(height: 10),
             TextButton(
