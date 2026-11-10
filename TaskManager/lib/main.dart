@@ -12,6 +12,7 @@ import 'screens/tasks/task_detail_screen.dart';
 import 'widgets/badges.dart';
 import 'widgets/loading_view.dart';
 import 'widgets/notification_bell.dart';
+import 'screens/statistics/statistics_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -334,6 +335,12 @@ class _TaskListScreenState extends State<TaskListScreen> {
         context,
         MaterialPageRoute(builder: (_) => const ProfileScreen()),
       );
+    } else if (value == 'statistics') {
+      await Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const StatisticsScreen()),
+      );
+      _refreshTasks();
     } else if (value == 'password') {
       Navigator.push(
         context,
@@ -499,6 +506,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
             onSelected: _onMenuSelected,
             itemBuilder: (_) => const [
               PopupMenuItem(value: 'profile', child: Text('Hồ sơ cá nhân')),
+              PopupMenuItem(value: 'statistics', child: Text('Thống kê công việc')),
               PopupMenuItem(value: 'password', child: Text('Đổi mật khẩu')),
               PopupMenuItem(value: 'logout', child: Text('Đăng xuất')),
             ],

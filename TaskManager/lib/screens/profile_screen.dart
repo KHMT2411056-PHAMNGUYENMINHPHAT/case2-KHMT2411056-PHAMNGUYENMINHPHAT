@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import 'statistics/statistics_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -114,6 +115,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   width: 20,
                   child: CircularProgressIndicator(strokeWidth: 2))
                   : const Text('Lưu thay đổi'),
+            ),
+            // Phần E2: mở màn hình thống kê
+            const SizedBox(height: 24),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.bar_chart),
+              title: const Text('Thống kê công việc'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const StatisticsScreen()),
+              ),
             ),
           ],
         ),
