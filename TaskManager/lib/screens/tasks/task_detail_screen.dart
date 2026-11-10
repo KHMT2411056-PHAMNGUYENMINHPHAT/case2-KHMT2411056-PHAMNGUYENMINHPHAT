@@ -9,6 +9,7 @@ import '../../widgets/badges.dart';
 import '../../widgets/loading_view.dart';
 import '../assignment/assign_task_screen.dart';
 import '../sharing/task_sharing_screen.dart';
+import 'email_log_screen.dart';
 
 /// Màn hình 4 — Chi tiết công việc: mô tả, thời hạn, trạng thái, người tạo,
 /// người phụ trách, người được chia sẻ; mở giao việc / quản lý chia sẻ;
@@ -105,6 +106,9 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
       case 'share':
         _open(TaskSharingScreen(taskId: t.id, taskTitle: t.title, canManage: t.access.canManageShares));
         break;
+      case 'emails':
+        _open(EmailLogScreen(taskId: t.id, taskTitle: t.title));
+        break;
       case 'delete':
         _delete();
         break;
@@ -148,6 +152,10 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
                       child: ListTile(
                           leading: const Icon(Icons.share),
                           title: Text(t.access.canManageShares ? 'Chia sẻ & quyền' : 'Thành viên'))),
+                  if (t.access.canManageShares)
+                    const PopupMenuItem(
+                        value: 'emails',
+                        child: ListTile(leading: Icon(Icons.mail_outline), title: Text('Lịch sử email'))),
                   if (t.access.canDelete)
                     const PopupMenuItem(
                         value: 'delete',
